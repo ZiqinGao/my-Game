@@ -1,0 +1,591 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Under_the_sea</title>
+
+<!-- for CreateJS and ZIMjs http://zimjs.com - free to modify - Dan Zen 2016 -->
+<!-- see http://zimjs.com/templates for more templates and meta tags -->
+
+<script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+<script>var zon = true; // true for comments from zim code</script>
+<script src="https://d309knd7es5f10.cloudfront.net/zim_4.3.0.js"></script>
+<script src="http://zimjs.com/code/bits/footer2.js"></script><!-- you will not need this -->
+<script src="https://d309knd7es5f10.cloudfront.net/easystar-0.3.0.min.js"></script>
+<script src="https://d309knd7es5f10.cloudfront.net/pizzazz_02.js"></script>
+
+<style>
+	body {margin:0px; padding:0px; background-color:#111;}
+</style>
+
+<script>
+
+// SCALING OPTIONS
+// scaling can have values as follows with full being the default
+// "fit"	sets canvas and stage to dimensions and scales to fit inside window size
+// "outside"	sets canvas and stage to dimensions and scales to fit outside window size
+// "full"	sets stage to window size with no scaling
+// "tagID"	add canvas to HTML tag of ID - set to dimensions if provided - no scaling
+
+var scaling = "fit"; // this will resize to fit inside the screen dimensions
+var width = 1200;
+var height = 900;
+var color = "#111";
+var frame = new zim.Frame(scaling, width, height, color);
+frame.on("ready", function() {
+	zog("ready from ZIM Frame");
+
+	var stage = frame.stage;
+	var stageW = frame.width;
+	var stageH = frame.height;
+
+	// ZIM BITS - Side Scroller Backing Animation Loop (2016)
+
+	// sidescrollers are fun! Flinstones @Hanna-Barbera in this case, I am sure!
+	// zim.Scroller is a background animator for horizontal or vertical scrolling
+	// you can dynamically set the speed and direction but
+	// the background is a long display object often a Bitmap
+	// it needs to be seamless at the ends so wrapping is not noticed
+	// the background gets automatically cloned and placed for looping
+	// and needs to be longer than the direction you are going
+
+
+	// STEPS
+	// 1. load the background assets using frame.loadAssets
+	// 2. when the assets are ready call a function
+	// 3. optionally we can set up a shape for a mask of the Scroller
+	// 4. create a container for all the objects being scrolled (optional)
+	// 5. add the background pic to the stage and position or scale
+	// 6. create a zim.Scroller and set the background pic as the background
+	// 7. optionally, make more than one scroller for a parallax effect
+	// 8. make an object that is "moving" in the scene
+	// 9.  we are going to make a CheckBox to handle masking or not
+	// 10. we are going to make a slider to controll the speed of the Scrollers
+	// 11. set ProportionDamp objects to convert the slider to the desired speed
+
+	var waiter = new zim.Waiter(stage);
+	waiter.show();
+
+////////// load the background assets using frame.loadAssets
+	frame.loadAssets([
+		"game_name.png",
+		"bubble.png",
+		"Heart.png",
+		"Hearts.png",
+		"food.png",
+		"hero_big.png",		
+		"princess.png",
+		"sea_background.png",
+		"sea_frountground.png",
+		"shark.png",
+		"backMusic.mp3",
+		"getStar.wav",
+		"gameover1.png"
+	], "assets/");
+
+////////// when the assets are ready call a function
+	frame.on("complete", function() {
+		waiter.hide();
+
+////make sure fish is in the scale allways
+	var fishScale =.25;
+
+
+/////////////music
+/////// create the music controls button
+	var video = new zim.Container(stageW, stageH);
+	stage.addChild(video);
+	video.name = "video";
+	video.x = 100;
+
+	var spacing = 15;
+	var iconScale = .8;
+	var iconColor = frame.light
+	var buttonSize = 40;
+	var buttonColor = frame.grey;
+	var buttonRoll = frame.silver;
+	var rollIconColor = frame.dark;
+
+/////// create a container to hold the controls
+	var controls = new zim.Container();
+	video.addChild(controls);
+	controls.x = 850;
+	controls.y = 100 + spacing;
+
+//////// make the play button toggle between two icons: play and pause
+	playButton = makeButton("play", "pause");
+	controls.addChild(playButton);
+
+	gamePaused = false;
+	playButton.on("click", function() {
+    	gamePaused = !gamePaused;
+   	
+    	foods.visible = !gamePaused;
+    	bubbles.visible = !gamePaused;
+
+    	background.speed = 0;
+    	road.speed = 0;
+    	foreground.speed = 0;
+
+	    	// stage.update();
+	});
+
+
+//////// make the sound button toggle between two icons: sound and mute
+	soundButton = makeButton("mute", "sound");
+	controls.addChild(soundButton);
+	soundButton.x = playButton.x + soundButton.width + spacing;
+
+/////////play music
+	var sound = frame.asset("backMusic.mp3").play({loop:100});
+	sound.paused = true;
+	soundButton.on("click", function() {
+    	sound.paused = !sound.paused;
+    	getStar.visible = sound.paused;
+	    	// stage.update();
+	});
+
+
+
+
+//////game restart
+	var restart = new zim.Label({
+	   text:"Restart",
+	   size:15,
+	   color:"white",
+	   fontOptions:"bold"
+	});
+
+	pizzazz.listIcons();
+	var restartIcon = pizzazz.makeIcon("rotate","white");
+	
+	var restartbutton = new zim.Button({
+	   label:"",
+	   width:60,
+	   height:60,
+	   icon:restartIcon,
+	   color:frame.dark,
+	   rollColor:frame.silver,
+	   gradient:.3,
+	   corner:30
+	});
+
+	stage.addChild(restartbutton);
+	restartbutton.x = 1100;
+	restartbutton.y = 100;
+
+	restartbutton.on("click", function() {
+		zgo("magic_fish(Ziqin_Gao).html");//put the same name as the file, so it can reload
+		// window.frame().location.href.reload();
+	})
+
+
+	function makeButton(type, toggle) {
+		var icon =  pizzazz.makeIcon({
+			type:type,
+			color:iconColor,
+			scale:iconScale
+		});
+		var rollIcon =  pizzazz.makeIcon({
+			type:type,
+			color:rollIconColor,
+			scale:iconScale
+		});
+
+		var toggleIcon;
+		if (toggle) {
+			toggleIcon = pizzazz.makeIcon({
+				type:toggle,
+				color:iconColor,
+				scale:iconScale
+			});
+			rollToggleIcon = pizzazz.makeIcon({
+				type:toggle,
+				color:rollIconColor,
+				scale:iconScale
+			});
+		}
+////////// once the icons are made, add them to the Button with icon, rollIcon, toggle and rollToggle params
+		var button = new zim.Button({
+			width:buttonSize,
+			height:buttonSize,
+			color:buttonColor,
+			rollColor:buttonRoll,
+			gradient:.3,
+			corner:4,
+			icon:icon,
+			rollIcon:rollIcon,
+			toggle:toggleIcon,
+			rollToggle:rollToggleIcon,
+			shadowColor:-1
+		});
+		return button;
+	}
+
+
+
+
+///////create a container for all the objects being scrolled (optional)
+		var animation = new zim.Container(stageW, stageH);
+		stage.addChild(animation);
+
+///////// add the background pic to the stage and position or scale
+		var backgroundPic = frame.asset("sea_background.png");
+		backgroundPic.scale(.5);
+		backgroundPic.y = 200;
+		animation.addChild(backgroundPic);
+
+///////the mask 
+		var mask = new zim.Rectangle(stageW,backgroundPic.height*backgroundPic.scaleY, "red");
+		stage.addChildAt(mask,0);
+		mask.y = 200;
+
+////// create a zim.Scroller and set the background pic as the background
+////// gapFix just joins the seam together a little more when dynamically changing speed
+		var background = new zim.Scroller({backing:backgroundPic, speed:1, gapFix:1});
+
+////// optionally, make more than one scroller for a parallax effect
+		var sea_frountground = frame.asset("sea_frountground.png");
+		sea_frountground.scale(.5);
+		sea_frountground.y = 200;
+		animation.addChild(sea_frountground);
+		var road = new zim.Scroller({backing:sea_frountground, speed:3.2, gapFix:1});
+
+
+////////////////shark
+		var shark = new zim.Container();
+		animation.addChild(shark);
+		var sharkPic = frame.asset("shark.png");
+		shark.setMask(mask);
+		shark.addChild(sharkPic);
+		shark.scale(.5);
+		shark.regX = 170;
+		shark.regY = 325;
+		shark.x = 900;
+		shark.y  = 400;
+		//shark.outline();
+
+///////////////shark damping
+		shark.dampX = new zim.Damp(shark.x, .005);
+		shark.dampY = new zim.Damp(shark.y, .005);
+
+		shark.cursor = "pointer";
+		var popEvent = shark.on("mousedown", function() {
+			shark.animate({obj:{rotation:-30}, time:400, rewind:true, rewindWait:300, override: false});	
+
+		shark.x = zim.rand(shark.width, stageW-shark.width);
+		shark.y = zim.rand(shark.height, stageH-shark.height);	
+		});
+		zim.rand(600, 1500)
+
+
+////////////////fish=hero
+		var hero = new zim.Container(stageW, stageH);
+		animation.addChild(hero);
+
+		var fish = frame.asset("hero_big.png");
+		fish.setMask(mask);
+		fish.scale(fishScale);
+		fish.regX = fish.width;
+		fish.regY = fish.height/2;
+		fish.center(hero);
+		fish.x = 200;
+
+//////////////////fish damping
+
+		fish.dampX = new zim.Damp(fish.x, .05);
+		fish.dampY = new zim.Damp(fish.y, .05);
+
+		fish.cursor = "pointer";
+		var popEvent = fish.on("mousedown", function() {
+			fish.animate({obj:{rotation:-30}, time:400, rewind:true, rewindWait:300, override: false});
+		});
+
+
+
+/////////////// foods
+
+		var foods = new zim.Container();
+		stage.addChild(foods);
+
+		var princess;
+		function foodsComing() {
+		setTimeout(function() {
+			requestAnimationFrame(foodsComing);
+			if (gamePaused) return;
+			if (princess && shark.contains(princess)) {
+				var food = frame.asset("Heart.png").clone();
+			}else{ 
+				var food = frame.asset("food.png").clone();
+			}
+			food.centerReg();
+			food.scale(.5);
+			foods.setMask(mask);
+
+
+			//food.center(animation);
+			animation.addChild(food);
+			food.x = stageW;//zim.rand(food.width, stageH );
+			food.y = zim.rand(food.height + 90, stageH - 100 );
+			//food.y -= 80;
+			food.animate({obj:{x:0}, time:8000 - (slider.currentValue)*500});
+			food.cursor = "pointer";			
+			food.regX = food.width;
+			food.regY = food.height/2;
+
+			
+
+			foods.addChild(food);
+
+		}, zim.rand(600, 1500));
+	}
+	foodsComing();
+
+		var foregroundPic = frame.asset("sea_frountground.png");
+		foregroundPic.scale(.5);
+		foregroundPic.y = sea_frountground.y + (sea_frountground.height-foregroundPic.height)*sea_frountground.scaleY+1;
+		animation.addChild(foregroundPic);
+		var foreground = new zim.Scroller({backing:foregroundPic, speed:4.3, gapFix:1});
+
+
+////////bubbles
+		var bubbles = new zim.Container();
+		stage.addChild(bubbles);
+
+		function bubblesComing() {
+		setTimeout(function() {
+			requestAnimationFrame(bubblesComing);
+			var bubble = frame.asset("bubble.png").clone();
+			bubble.setMask(mask);
+			bubble.centerReg();
+			bubble.scale(.3);
+			
+
+			animation.addChild(bubble);
+			bubble.x = stageW;//zim.rand(bubble.width, stageH );
+			bubble.y = zim.rand(bubble.height + 90, stageH - 100 );
+			bubble.animate({obj:{x:0}, time:8000 - (slider.currentValue)*500});
+			bubble.cursor = "pointer";			
+			bubble.regX = bubble.width;
+			bubble.regY = bubble.height/2;
+
+			
+
+			bubbles.addChild(bubble);
+
+		}, zim.rand(600, 1500));
+	}
+	bubblesComing();
+
+
+
+/////// we are going to make a slider to controll the harder level of game
+		var slider = new zim.Slider({
+			barLength:250,
+			button:new zim.Button({
+				width:25,
+				height:25,
+				backing:new zim.Circle(13, frame.blue),
+				rollBacking:new zim.Circle(13, frame.green),
+				label:""
+			})
+		});
+		slider.currentValue = slider.max / 3;
+		slider.center(stage);
+		slider.y = stage.y + slider.height/.2;
+		slider.x = stage.x + 600;
+
+		// set ProportionDamp objects to convert the slider to the desired speed
+		// each Scroller is going at a different speed
+		// this is a pretty easy calculation but ProportionDamp removes the thinking ;-)
+
+		// baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound
+		// could have set to 0 or small positive amount but thought it might be fun to reverse
+		var backgroundPD = new zim.ProportionDamp(slider.min, slider.max, -background.speed*.2, background.speed*3, .05);
+		var roadPD = new zim.ProportionDamp(slider.min, slider.max, -road.speed*.2, road.speed*3, .05);
+		var foregroundPD = new zim.ProportionDamp(slider.min, slider.max, -foreground.speed*.2, foreground.speed*3, .05);
+
+
+//////////counter
+		var counter = 0;
+		var growing = true;
+
+		var desiredY = stageH/2;
+
+
+/////set the ticker
+  		var kissCheck = false;
+		var ticker = zim.Ticker.add(function(){
+			/////game Pause/ no moving
+			if (gamePaused) return;
+			
+			background.speed = backgroundPD.convert(slider.currentValue);
+			road.speed = roadPD.convert(slider.currentValue);
+			foreground.speed = foregroundPD.convert(slider.currentValue);
+				
+
+			//fish damping
+			fish.x = fish.dampX.convert(stage.mouseX);
+			
+			if (stage.mouseY > 200){
+				desiredY = stage.mouseY;	
+			}
+			fish.y = fish.dampY.convert(desiredY);
+
+//////////fish directions
+			if (stage.mouseX<fish.x){
+				//fish.scaleX = -.2;
+				fish.animate({
+					obj:{scaleX:-fishScale},
+					time:500,
+					protect:true
+				});
+			} else {
+				fish.animate({
+					obj:{scaleX:fishScale},
+					time:500,
+					protect:true
+				});
+			}
+
+
+
+//////shark track
+			shark.x = shark.dampX.convert(fish.x);
+			shark.y = shark.dampY.convert(fish.y);
+
+//////////fish directions control
+			if (fish.x > shark.x){
+				shark.animate({
+					obj:{scaleX:-.5},
+					time:500,
+					protect:true
+				});
+			} else {
+				shark.animate({
+					obj:{scaleX:.5},
+					time:500,
+					protect:true
+				});
+			}
+
+
+//////shark hit test with fish
+
+  if (growing) {
+				if (fish.hitTestReg(shark)){
+					animation.removeChild(fish);
+					zim.Ticker.remove(ticker);
+					var gameOver = frame.asset("gameover1.png");
+					gameOver.scale(1);
+					gameOver.center(stage);}
+
+			} else {
+				if (fish.hitTestBounds(shark)){
+					shark.removeChild(sharkPic);
+					princess = frame.asset("princess.png");
+					shark.addChild(princess);
+					
+					///////kiss and hears
+					princess.regX = 60;
+					princess.regY = 325;
+					// princess.outline();
+
+					if (kissCheck == false && fish.hitTestReg(princess)){
+						kissCheck = true;
+						setTimeout(function(){
+							kissCheck = false;
+						},3000)
+										
+						var kiss = frame.asset("Hearts.png").clone();
+						stage.addChild(kiss);
+						kiss.centerReg();
+						kiss.alpha = 1;
+						kiss.scale(0.5);
+						kiss.animate({alpha:0, scale:0}, 700, null,null,null,1000);
+						kiss.x =  fish.x +zim.rand(-50, 50);
+						kiss.y =  fish.y +zim.rand(-50, 50);
+				
+					}
+					
+				}
+			}			
+
+
+
+/////fish eat food to grow, and stop in some point
+			var food;
+			for (var i=0; i<foods.numChildren; i++) {
+				food = foods.getChildAt(i);
+
+				if (food.hitTestReg(fish)) {
+					counter++;
+
+
+					if (growing && counter >= 1){
+
+						fish.scaleX *= 1.05;
+						fish.scaleY *= 1.05;
+						fishScale = fish.scaleY;
+
+						if(counter >= 10){
+							growing = false;	
+						}
+						
+					}
+					foods.removeChild(food);
+
+
+					if (!sound.paused){
+						getStar = frame.asset("getStar.wav").play();
+					}
+					
+				}
+			}
+
+		}, stage);
+
+		// fish.outline();
+
+
+
+///////title for game// game name
+		//logo
+		var logo = frame.asset("game_name.png");
+			logo.scale(.7);
+	
+		stage.addChild(logo);
+		
+		logo.x = 5;
+		logo.y = 40;
+		
+	}); // end assets complete
+
+
+
+
+///////// title for silder/ difficulty
+	var title = "difficulty";
+	var label = new zim.Label(title, 30, null, "#666");
+	stage.addChild(label);
+	label.x = 480;
+	label.y = 110;
+
+
+
+
+
+	stage.update();
+
+}); // end of ready
+
+</script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui" />
+
+</head>
+
+<body>
+<!-- canvas with id="myCanvas" is made by zim Frame -->
+</body>
+</html>
