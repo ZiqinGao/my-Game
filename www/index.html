@@ -302,8 +302,8 @@ frame.on("ready", function() {
 
 //////////////////fish damping
 
-		fish.dampX = new zim.Damp(fish.x, .05);
-		fish.dampY = new zim.Damp(fish.y, .05);
+		fish.dampX = new zim.Damp(fish.x, .2);
+		fish.dampY = new zim.Damp(fish.y, .2);
 
 		fish.cursor = "pointer";
 		var popEvent = fish.on("mousedown", function() {
