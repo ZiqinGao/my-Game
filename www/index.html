@@ -78,14 +78,18 @@ frame.on("ready", function() {
 		"sea_background.png",
 		"sea_frountground.png",
 		"shark.png",
-		"backMusic.mp3",
-		"getStar.wav",
+		// "backMusic.mp3",
+		// "getStar.wav",
 		"gameover1.png"
 	], "assets/");
 
 ////////// when the assets are ready call a function
 	frame.on("complete", function() {
 		waiter.hide();
+
+	var audio = new Audio('assets/backMusic.mp3');
+	var audioStar = new Audio('assets/getStar.wav');
+	
 
 ////make sure fish is in the scale allways
 	var fishScale =.25;
@@ -137,11 +141,16 @@ frame.on("ready", function() {
 	soundButton.x = playButton.x + soundButton.width + spacing;
 
 /////////play music
-	var sound = frame.asset("backMusic.mp3").play({loop:100});
-	sound.paused = true;
+	// var sound = frame.asset("backMusic.mp3").play({loop:100});
+	// sound.paused = true;
 	soundButton.on("click", function() {
-    	sound.paused = !sound.paused;
-    	getStar.visible = sound.paused;
+    	// sound.paused = !sound.paused;
+    	if (audio.paused) {
+    		audio.play();
+    	} else {
+    		audio.pause();
+    	}
+    	// getStar.visible = sound.paused;
 	    	// stage.update();
 	});
 
@@ -536,9 +545,10 @@ frame.on("ready", function() {
 					foods.removeChild(food);
 
 
-					if (!sound.paused){
-						getStar = frame.asset("getStar.wav").play();
+					if (!audio.paused){
+						audioStar.play();
 					}
+					
 					
 				}
 			}
@@ -586,6 +596,10 @@ frame.on("ready", function() {
 </head>
 
 <body>
+	<!-- <audio controls="controls">
+	  Your browser does not support the <code>audio</code> element.
+	  <source src="assets/backMusic.mp3" type="audio/mp3">
+	</audio> -->
 <!-- canvas with id="myCanvas" is made by zim Frame -->
 </body>
 </html>
